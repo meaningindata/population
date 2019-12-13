@@ -41,5 +41,12 @@ if(!exists("population_prediction", mode="function")) source("population_predict
 
 population_data.import_data()
 
+population_prediction.predict <- function(){
+  population_prediction.convert_variants_to_yearly()
+  population_prediction.predict_variants()
+  population_prediction.predict_population()
+  population_prediction.calculate_prediction_accuracy()
+}
+
 
 

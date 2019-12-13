@@ -23,6 +23,10 @@ population_plots <- function(){ UseMethod("population_plots")}
 world_population_map <- NULL
 
 population_plots.map_world_population <- function(y){
+  
+  # passed parameter y = year
+  
+  
   if (is.null(world_population_map)) {
     data <- population_by_country %>% 
       left_join(locations, by="code") %>%
@@ -46,6 +50,7 @@ population_plots.map_world_population <- function(y){
 ########################################################################
 population_plots.list_top10_countries <- function(){
 
+  # <<- assigns value to the global variable, same as assign command
   TOP10_COUNTRIES_POPULATION <<- top10_countries %>% group_by() %>% summarize(total = sum(Population)) %>% .$total
   TOP10_COUNTRIES_PERCENTAGE <<- TOP10_COUNTRIES_POPULATION / CURRENT_POPULATION * 100
   
@@ -54,7 +59,6 @@ population_plots.list_top10_countries <- function(){
   knitr::kable(data)
   
 }
-#population_plots.list_top10_countries()
 
 
 
@@ -71,7 +75,7 @@ population_plots.plot_china_india_trends <- function() {
     ggtitle("China/India Population by Year") +
     ylab("Millions of People")
 }
-#population_plots.plot_china_india_trends()
+
 
 
 
@@ -117,7 +121,7 @@ population_plots.plot_top10_countries_trends <- function() {
     ylab("Millions of People") + 
     theme(legend.position = "bottom")
 }
-#population_plots.plot_top10_countries_trends()
+
 
 
 
@@ -128,6 +132,8 @@ population_plots.plot_top10_countries_trends <- function() {
 ########################################################################
 population_plots.plot_gender_trends <- function(c) {
 
+  # passed parameter c = country code
+  
   gender_trends_male <- population_by_country %>%
     filter(code == c) %>%
     group_by(year) %>%
@@ -165,6 +171,8 @@ population_plots.plot_gender_trends <- function(c) {
 # Plot fertility rates
 ########################################################################
 population_plots.plot_fertility_rates <- function(c){
+  
+  # passed parameter c = country code
   
   yearintervals <- seq(1950,2020,5)
   
@@ -212,6 +220,8 @@ population_plots.plot_fertility_rates_top10 <- function() {
 ########################################################################
 population_plots.plot_age_groups_for_year <- function(c, y) {
   
+  #passed parameters : c = country code, y = year
+  
   age_groups %>%
     filter(Code == c, Year == y) %>%
     arrange(Decade) %>%
@@ -223,8 +233,7 @@ population_plots.plot_age_groups_for_year <- function(c, y) {
     ylab("Millions of People")    
 
 }
-#population_plots.plot_age_groups_for_year(GLOBAL, LAST_YEAR)
-#population_plots.plot_age_groups_for_year(GLOBAL, FIRST_YEAR)
+
 
 
 
@@ -269,6 +278,8 @@ population_plots.plot_compare_agegroups <- function(){
 # Plot Birth Rates
 ########################################################################
 population_plots.plot_birth_rates <- function(c){
+
+  # passed parameter c = country code
   
   yearintervals <- seq(1950,2020,5)
   
@@ -290,6 +301,9 @@ population_plots.plot_birth_rates <- function(c){
 ########################################################################
 population_plots.plot_death_rates <- function(c){
   
+  # passed parameter c = country code
+  
+  
   yearintervals <- seq(1950,2020,5)
   
   variant %>%
@@ -309,7 +323,9 @@ population_plots.plot_death_rates <- function(c){
 # Plot Life Expectancy
 ########################################################################
 population_plots.plot_life_expectancy <- function(c){
-
+  
+  # passed parameter c = country code
+  
   yearintervals <- seq(1950,2020,5)
   
   variant %>%
@@ -322,7 +338,6 @@ population_plots.plot_life_expectancy <- function(c){
     ylab("Life Expectancy")
   
 }
-#population_plots.plot_life_expectancy(900)
 
 
 
@@ -345,7 +360,6 @@ population_plots.plot_life_expectancy_top10 <- function(){
 
 
 }
-#population_plots.plot_life_expectancy_top10()
 
 
 

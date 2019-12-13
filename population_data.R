@@ -123,12 +123,17 @@ import_locations_data <- function() {
   
   message("IMPORTING LOCATION DATA")
   
+  # file is an Excel file
+  
   if(DOWNLOAD_FROM_SOURCE) {
     download.file(link_locations, str_c(DATA_DIRECTORY, "/", filename_locations), mode="wb")
     xlsx <- read_excel(str_c(DATA_DIRECTORY, "/", filename_locations), sheet=1, col_names=FALSE, skip=17)
   }
   
+  # use the first sheet and ignore the first 17 rows
   xlsx <- read_excel(str_c(DATA_DIRECTORY, "/", filename_locations), sheet=1, col_names=FALSE, skip=17)
+  
+  # there are no clean column names so the following adds usable ones
   colnames(xlsx) <- c("index",
                       "name",
                       "notes",
@@ -168,6 +173,7 @@ import_locations_data <- function() {
                       "populationlessthan90000"
                       )
 
+  # select only the columns required for the analysis
   locations <- xlsx %>%
     select(code,
            name,
@@ -182,6 +188,7 @@ import_locations_data <- function() {
            subregionname
            )
 
+  #assign the data set to the global variable so it is accessible by any script file
   assign("locations", locations, envir = .GlobalEnv)
 }
 
@@ -194,6 +201,11 @@ import_locations_data <- function() {
 import_population_data <- function(){
   
   message("IMPORTING POPULATION DATA")
+  
+  # these files are rather large, each over 240MB
+  # set the DOWNLOAD_FROM_SOURCE variable to TRUE the first time to get the file from the UN site
+  # once you have it set it to FALSE so it continues to use the local file
+  # the DOWNLOAD_FROM_SOURCE global variable can be found in the population_global.r script
   
   if(DOWNLOAD_FROM_SOURCE) {
     temp <- tempfile()
@@ -211,6 +223,7 @@ import_population_data <- function(){
     future_population <- read_csv(str_c(DATA_DIRECTORY, "/", filename_future_population))
   }
   
+  # this file will be the validation set as it contains the UN population prediction from 2020 to 2100
   future_population <<- future_population %>% 
     select(code = LocID,
            name = Location,
@@ -220,6 +233,7 @@ import_population_data <- function(){
            female = PopFemale,
            total = PopTotal)  
 
+  # this file contains the actual population levels by country, year and age from 1950 to 2019
   population <- population %>% 
     filter(Time < 2020) %>%
     select(code = LocID,
@@ -229,38 +243,47 @@ import_population_data <- function(){
             male = PopMale,
             female = PopFemale,
             total = PopTotal)  
-  
+
+  # population totals are in thousands, so we convert them to full population numbers  
   population <- population %>%
     mutate(total = (total * 1000),
            male = (male * 1000),
            female = (female * 1000))
-  
+
+  # create a new column for the decade of each age for some analysis  
   population <- population %>%
     mutate(
       decade = ifelse(age < 100, floor(age/10) * 10 + 9, 100),
       agegroup = ifelse(age < 100, str_c(as.character(decade - 9), "-", as.character(decade)), "100+")
     )
 
+  # populate a few global variables that are used throught
   FIRST_YEAR <<- min(population$year)
   LAST_YEAR <<- max(population$year)
   YEARS <<- FIRST_YEAR:LAST_YEAR
-  
+
+  # get the most current population values - 2019
   CURRENT_POPULATION <<- population %>%
     left_join(locations, by = "code") %>%
     filter(year == LAST_YEAR & typecode == 4) %>%
     summarize(total = sum(total)) %>%
     .$total
   
+  # get the population from the oldest year which is 1950
   PREVIOUS_POPULATION <<- population %>%
     left_join(locations, by = "code") %>%
     filter(year == FIRST_YEAR & typecode == 4) %>%
     summarize(total = sum(total)) %>%
     .$total
   
+  # calculate the increase in population from 1950 to 2019
   POPULATION_INCREASE <<- (CURRENT_POPULATION - PREVIOUS_POPULATION) / PREVIOUS_POPULATION * 100
   
+
+  # assign the population data set to the global variable for use throught the project
   assign("population", population, envir = .GlobalEnv)
   
+  # create subsets of the data for our observation / analysis
   create_population_by_country()
   create_top10_countries()
   create_china_india_trends()
@@ -280,6 +303,11 @@ import_variant_data <- function() {
   
   message("IMPORTING VARIANT DATA")
   
+  # this file contains the variant data including birth rates, death rates and life expectancy in 5 year intervals
+  # set the DOWNLOAD_FROM_SOURCE variable to TRUE the first time to get the file from the UN site
+  # once you have it set it to FALSE so it continues to use the local file
+  # the DOWNLOAD_FROM_SOURCE global variable can be found in the population_global.r script
+  
   if(DOWNLOAD_FROM_SOURCE) {
     temp <- tempfile()
     download.file(link_variants, temp)
@@ -289,7 +317,8 @@ import_variant_data <- function() {
   } else {
     variant <- read_csv(str_c(DATA_DIRECTORY, "/", filename_variant))
   }
-  
+
+  # not all fields are used, so select only the columns needed for the analysis and model  
   variant <- variant %>%
     select(code = LocID,
            name = Location,
@@ -310,6 +339,9 @@ import_variant_data <- function() {
            migration_total = NetMigrations)
   
 
+  # Convert a few values and create a year range because these numbers are for 5 year intervals, not single
+  # as in the population data set
+  
   variant <- variant %>% 
     mutate(year = as.numeric(substr(period, 1, 4)),
            from_year = as.numeric(substr(period, 1, 4)),
@@ -325,10 +357,12 @@ import_variant_data <- function() {
            migration_total = migration_total,
            life_expectancy = life_expectancy_both)
   
+  # extract the fertility rates for 1950 and 2019
   PREVIOUS_FERTILITY_RATE <<- variant %>% filter(code==GLOBAL & year==1955) %>% .$fertility_rate
   CURRENT_FERTILITY_RATE <<- variant %>% filter(code==GLOBAL & year==2020) %>% .$fertility_rate
   
 
+  # assign the data set to the global variable
   assign("variant", variant, envir = .GlobalEnv)
   
 }
@@ -343,6 +377,7 @@ import_variant_data <- function() {
 # ----------------------------------------------------------------------
 # Manipulates main data sets into working sets
 #
+# These datasets are used in the observation section of the report
 ########################################################################
 
 ########################################################################
@@ -371,6 +406,8 @@ create_top10_countries <- function(){
   top10_countries <- top10_countries %>%
     arrange(desc(Population)) %>%
     head(10)
+
+  # <<- is another / short form for assigning a variable to a global variable. Does the same as the assign command
   
   TOP10_COUNTRIES_POPULATION <<- top10_countries %>% group_by() %>% summarize(total = sum(Population)) %>% .$total
   TOP10_COUNTRIES_PERCENTAGE <<- TOP10_COUNTRIES_POPULATION / CURRENT_POPULATION * 100
@@ -420,6 +457,8 @@ create_all_countries_trends <- function() {
            Previous_Female,
            Current_Total,
            Previous_Total)
+  
+  assign("all_countries_trends", all_countries_trends, envir=.GlobalEnv)
 }
 
 
