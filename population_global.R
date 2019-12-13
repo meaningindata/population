@@ -26,7 +26,7 @@ DATA_DIRECTORY <- "data"
 ###########################################################
 # Variables and Control Flags
 ###########################################################
-DOWNLOAD_FROM_SOURCE <- FALSE # TRUE : download files from origin / #FALSE : use local file referenced in the link_ variable
+DOWNLOAD_FROM_SOURCE <- TRUE # TRUE : download files from origin / #FALSE : use local file referenced in the link_ variable
 
 FIRST_YEAR <-NULL
 LAST_YEAR <- NULL
